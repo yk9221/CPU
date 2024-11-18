@@ -1,0 +1,5 @@
+cpu
+*.o
+code.yk
+output.bin
+.vscode
