@@ -94,23 +94,6 @@ string tolower(string str) {
     return str;
 }
 
-Byte stringToHex(string str) {
-    Byte hex = 0;
-    for(char c : str) {
-        if(isdigit(c)) {
-            hex <<= 4;
-            hex |= (c - '0');
-        }
-        else if(isalpha(c)) {
-            hex <<= 4;
-            if(c >= 'a' && c <= 'f') {
-                hex |= (c - 'a' + 10);
-            }
-        }
-    }
-    return hex;
-}
-
 bool checkIsByte(const string& num) {
     if(checkIsNumber(num) == Radix::ERR) {
         return false;
@@ -249,42 +232,58 @@ void changeModeToError(string& opcode, AddressingMode& mode) {
     }
 }
 
-void appendOpcode(string& opcode, AddressingMode& mode, vector<Byte>& conversion) {
+void appendOpcode(string& opcode, AddressingMode& mode, vector<Byte>& conversion, Word& PC) {
     int modeIndex = getModeIndex(opcode, mode);
     if(modeIndex != -1) {
         conversion.push_back(allAddressingModes[opcode][modeIndex].second);
     }
+    PC++;
 }
 
 
 
-void appendOperands(string& opcode, string& operands, AddressingMode& mode, vector<Byte>& conversion) {
+void appendOperands(string& opcode, string& operands, AddressingMode& mode, vector<Byte>& conversion, Word& PC) {
+    Word value = 0x0;
     string num;
-    if(operands[0] == '#') {
-        num = operands.substr(1);
+
+    if(labelAddress.find(operands) != labelAddress.end()) {
+        value = labelAddress[operands];
     }
     else {
-        num = operands;
+        if(operands[0] == '#') {
+            num = operands.substr(1);
+        }
+        else {
+            num = operands;
+        }
+
+        if(checkIsNumber(num) == Radix::BIN) {
+            value = strtol(num.substr(1).c_str(), nullptr, 2);
+        }
+        else if(checkIsNumber(num) == Radix::OCT) {
+            value = strtol(num.substr(1).c_str(), nullptr, 8);
+        }
+        else if(checkIsNumber(num) == Radix::DEC) {
+            value = strtol(num.c_str(), nullptr, 10);
+        }
+        else if(checkIsNumber(num) == Radix::HEX) {
+            value = strtol(num.substr(1).c_str(), nullptr, 16);
+        }
     }
 
-    Byte value;
-    if(checkIsNumber(num) == Radix::BIN) {
-        value = strtol(num.substr(1).c_str(), nullptr, 2);
+    Byte lower = value & 0xFF;
+    conversion.push_back(lower);
+    PC++;
+
+    if(value > MAX_BYTE) {
+        Byte upper = (value >> 8) & 0xFF;
+        conversion.push_back(upper);
+        PC++;
     }
-    else if(checkIsNumber(num) == Radix::OCT) {
-        value = strtol(num.substr(1).c_str(), nullptr, 8);
-    }
-    else if(checkIsNumber(num) == Radix::DEC) {
-        value = strtol(num.c_str(), nullptr, 10);
-    }
-    else if(checkIsNumber(num) == Radix::HEX) {
-        value = strtol(num.substr(1).c_str(), nullptr, 16);
-    }
-    conversion.push_back(value);
 }
 
 
-vector<Byte> parseOperands(vector<string>& ins) {
+vector<Byte> parseOperands(vector<string>& ins, Word PC) {
     string opcode = ins[0];
     AddressingMode mode;
     vector<Byte> conversion;
@@ -295,7 +294,8 @@ vector<Byte> parseOperands(vector<string>& ins) {
         }
         else if(opcode[opcode.size() - 1] == ':') {
             if(labelAddress.find(opcode.substr(0, opcode.size() - 1)) == labelAddress.end()) {
-                labelAddress.insert({opcode.substr(0, opcode.size() - 1), 0x0});
+                printf("%x\n", PC);
+                labelAddress.insert({opcode.substr(0, opcode.size() - 1), PC});
                 mode = Label;
             }
             else {
@@ -310,7 +310,7 @@ vector<Byte> parseOperands(vector<string>& ins) {
         if(ins.size() == 1) {
             mode = Implicit;
             changeModeToError(opcode, mode);
-            appendOpcode(opcode, mode, conversion);
+            appendOpcode(opcode, mode, conversion, PC);
 
         }
         else if(ins.size() == 2) {
@@ -319,17 +319,17 @@ vector<Byte> parseOperands(vector<string>& ins) {
             if(operand.empty()) {
                 mode = Error;
             }
-            else if(operand == "a" || operand == "x" || operand == "y") {
+            else if(operand == "a") {
                 mode = Accumulator;
                 changeModeToError(opcode, mode);
-                appendOpcode(opcode, mode, conversion);
+                appendOpcode(opcode, mode, conversion, PC);
             }
             else if(operand[0] == '#') {
                 if(checkIsByte(operand.substr(1))) {
                     mode = Immediate;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else {
                     mode = Error;
@@ -339,14 +339,14 @@ vector<Byte> parseOperands(vector<string>& ins) {
                 if(checkIsWord(operand.substr(1, operand.length() - 2))) {
                     mode = Indirect;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(labelAddress.find(operand.substr(1, operand.length() - 2)) != labelAddress.end()) {
                     mode = Indirect;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else {
                     mode = Error;
@@ -356,14 +356,14 @@ vector<Byte> parseOperands(vector<string>& ins) {
                 if(checkIsByte(operand)) {
                     mode = ZeroPage;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(checkIsWord(operand)) {
                     mode = Absolute;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(labelAddress.find(operand) != labelAddress.end()) {
                     if(labelAddress[operand] <= MAX_BYTE) {
@@ -375,14 +375,17 @@ vector<Byte> parseOperands(vector<string>& ins) {
                             }
                         }
                         changeModeToError(opcode, mode);
-                        appendOpcode(opcode, mode, conversion);
-                        appendOperands(opcode, operand, mode, conversion);
+                        appendOpcode(opcode, mode, conversion, PC);
+                        appendOperands(opcode, operand, mode, conversion, PC);
                     }
                     else if(labelAddress[operand] <= MAX_WORD) {
                         mode = Absolute;
+                        if(!checkModeExists(opcode, mode)) {
+                            mode = Relative;
+                        }
                         changeModeToError(opcode, mode);
-                        appendOpcode(opcode, mode, conversion);
-                        appendOperands(opcode, operand, mode, conversion);
+                        appendOpcode(opcode, mode, conversion, PC);
+                        appendOperands(opcode, operand, mode, conversion, PC);
                     }
                     else {
                         mode = Error;
@@ -407,14 +410,14 @@ vector<Byte> parseOperands(vector<string>& ins) {
                 if(checkIsByte(operand.substr(1, operand.length() - 2)) && reg == "y") {
                     mode = IndirectY;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(labelAddress.find(operand.substr(1, operand.length() - 2)) != labelAddress.end() && reg == "y") {
                     mode = IndirectY;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else {
                     mode = Error;
@@ -424,14 +427,14 @@ vector<Byte> parseOperands(vector<string>& ins) {
                 if(checkIsByte(operand.substr(1)) && reg.substr(0, 1) == "x") {
                     mode = IndirectX;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(labelAddress.find(operand.substr(1)) != labelAddress.end() && reg.substr(0, 1) == "x") {
                     mode = IndirectX;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else {
                     mode = Error;
@@ -444,8 +447,8 @@ vector<Byte> parseOperands(vector<string>& ins) {
                         mode = AbsoluteX;
                     }
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(checkIsByte(operand) && reg == "y") {
                     mode = ZeroPageY;
@@ -453,20 +456,20 @@ vector<Byte> parseOperands(vector<string>& ins) {
                         mode = AbsoluteY;
                     }
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(checkIsWord(operand) && reg == "x") {
                     mode = AbsoluteX;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(checkIsWord(operand) && reg == "y") {
                     mode = AbsoluteY;
                     changeModeToError(opcode, mode);
-                    appendOpcode(opcode, mode, conversion);
-                    appendOperands(opcode, operand, mode, conversion);
+                    appendOpcode(opcode, mode, conversion, PC);
+                    appendOperands(opcode, operand, mode, conversion, PC);
                 }
                 else if(labelAddress.find(operand) != labelAddress.end()) {
                     if(labelAddress[operand] <= MAX_BYTE && reg == "x") {
@@ -475,8 +478,8 @@ vector<Byte> parseOperands(vector<string>& ins) {
                             mode = AbsoluteX;
                         }
                         changeModeToError(opcode, mode);
-                        appendOpcode(opcode, mode, conversion);
-                        appendOperands(opcode, operand, mode, conversion);
+                        appendOpcode(opcode, mode, conversion, PC);
+                        appendOperands(opcode, operand, mode, conversion, PC);
                     }
                     else if(labelAddress[operand] <= MAX_BYTE && reg == "y") {
                         mode = ZeroPageY;
@@ -484,20 +487,20 @@ vector<Byte> parseOperands(vector<string>& ins) {
                             mode = AbsoluteY;
                         }
                         changeModeToError(opcode, mode);
-                        appendOpcode(opcode, mode, conversion);
-                        appendOperands(opcode, operand, mode, conversion);
+                        appendOpcode(opcode, mode, conversion, PC);
+                        appendOperands(opcode, operand, mode, conversion, PC);
                     }
                     else if(labelAddress[operand] <= MAX_WORD && reg == "x") {
                         mode = AbsoluteX;
                         changeModeToError(opcode, mode);
-                        appendOpcode(opcode, mode, conversion);
-                        appendOperands(opcode, operand, mode, conversion);
+                        appendOpcode(opcode, mode, conversion, PC);
+                        appendOperands(opcode, operand, mode, conversion, PC);
                     }
                     else if(labelAddress[operand] <= MAX_WORD && reg == "y") {
                         mode = AbsoluteY;
                         changeModeToError(opcode, mode);
-                        appendOpcode(opcode, mode, conversion);
-                        appendOperands(opcode, operand, mode, conversion);
+                        appendOpcode(opcode, mode, conversion, PC);
+                        appendOperands(opcode, operand, mode, conversion, PC);
                     }
                     else {
                         mode = Error;
@@ -543,6 +546,7 @@ vector<Byte> parseOperands(vector<string>& ins) {
 
 void Assembler::parse(CPU* cpu, const string& filename) {
     Word PC = cpu->PC;
+
     ifstream file(filename);
     string line;
     unordered_set<char> delim{' ', ','};
@@ -559,7 +563,7 @@ void Assembler::parse(CPU* cpu, const string& filename) {
         vector<Byte> conversion;
         string opcode = parsed[i][0];
         printInstruction(parsed[i]);
-        conversion = parseOperands(parsed[i]);
+        conversion = parseOperands(parsed[i], PC);
         addToMemory(conversion, cpu, PC);
     }
 
@@ -595,10 +599,10 @@ vector<string> Assembler::split(const string& str, const unordered_set<char>& de
     return tokens;
 }
 
-void Assembler::addToMemory(vector<Byte>& instructions, CPU* cpu, Word& PC) {
+void Assembler::addToMemory(vector<Byte>& instructions, CPU* cpu, Word& PCCopy) {
     for(auto ins : instructions) {
-        printf("%x: %x\n", PC, ins);
-        cpu->write(PC, ins);
-        PC++;
+        printf("%x: %x\n", PCCopy, ins);
+        cpu->write(PCCopy, ins);
+        PCCopy++;
     }
 }

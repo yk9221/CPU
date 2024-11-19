@@ -34,7 +34,7 @@ public:
 
     void parse(CPU* cpu, const string& filename);
     vector<string> split(const string& str, const unordered_set<char>& delimiter);
-    void addToMemory(vector<Byte>& instructions, CPU* cpu, Word& PC);
+    void addToMemory(vector<Byte>& instructions, CPU* cpu, Word& PCCopy);
 };
 
 #endif
