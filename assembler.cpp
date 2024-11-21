@@ -290,6 +290,29 @@ Word stringToNum(string& num) {
     return value;
 }
 
+void printMode(AddressingMode& mode) {
+    printf("Mode: ");
+    switch(mode) {
+        case Implicit: {printf("Implicit\n"); break;}
+        case Accumulator: {printf("Accumulator\n"); break;}
+        case Immediate: {printf("Immediate\n"); break;}
+        case ZeroPage: {printf("ZeroPage\n"); break;}
+        case ZeroPageX: {printf("ZeroPageX\n"); break;}
+        case ZeroPageY: {printf("ZeroPageY\n"); break;}
+        case Relative: {printf("Relative\n"); break;}
+        case Absolute: {printf("Absolute\n"); break;}
+        case AbsoluteX: {printf("AbsoluteX\n"); break;}
+        case AbsoluteY: {printf("AbsoluteY\n"); break;}
+        case Indirect: {printf("Indirect\n"); break;}
+        case IndirectX: {printf("IndirectX\n"); break;}
+        case IndirectY: {printf("IndirectY\n"); break;}
+        case Error: {printf("Error\n"); break;}
+        case Label: {printf("Label\n"); break;}
+        case Define: {printf("Define\n"); break;}
+        default: {printf("Error\n"); break;}
+    }
+}
+
 void appendOperands(string& opcode, string& operands, AddressingMode& mode, vector<Byte>& conversion, Word& PC) {
     Word value = 0x0;
     string num;
@@ -347,7 +370,13 @@ void checkImplicit(vector<string>& ins, AddressingMode& mode, string& opcode) {
 }
 
 void checkAccumulator(vector<string>& ins, AddressingMode& mode, string& opcode) {
+    // INS
     // INS A
+
+    if(ins.size() == 1 && mode != Implicit) {
+        mode = Accumulator;
+        setErrorModeIfMissing(opcode, mode);
+    }
 
     if(ins.size() == 2) {
         string operand = ins[1];
@@ -601,26 +630,7 @@ void checkModes(vector<string>& ins, AddressingMode& mode, string& opcode) {
     checkLabel(ins, mode, opcode);
     checkDefine(ins, mode, opcode);
 
-    printf("Mode: ");
-    switch(mode) {
-        case Implicit: {printf("Implicit\n"); break;}
-        case Accumulator: {printf("Accumulator\n"); break;}
-        case Immediate: {printf("Immediate\n"); break;}
-        case ZeroPage: {printf("ZeroPage\n"); break;}
-        case ZeroPageX: {printf("ZeroPageX\n"); break;}
-        case ZeroPageY: {printf("ZeroPageY\n"); break;}
-        case Relative: {printf("Relative\n"); break;}
-        case Absolute: {printf("Absolute\n"); break;}
-        case AbsoluteX: {printf("AbsoluteX\n"); break;}
-        case AbsoluteY: {printf("AbsoluteY\n"); break;}
-        case Indirect: {printf("Indirect\n"); break;}
-        case IndirectX: {printf("IndirectX\n"); break;}
-        case IndirectY: {printf("IndirectY\n"); break;}
-        case Error: {printf("Error\n"); break;}
-        case Label: {printf("Label\n"); break;}
-        case Define: {printf("Define\n"); break;}
-        default: {printf("Error\n"); break;}
-    }
+    // printMode(mode);
 }
 
 void insertLabels(vector<string>& ins) {
@@ -651,6 +661,15 @@ void parseLabels(vector<string>& ins, Word& PC) {
     if(mode == Label) {
         labelAddress[opcode.substr(0, opcode.size() - 1)].value = PC;
     }
+
+    if(mode == Error) {
+        cout << "Error in line: ";
+        for(int i = 0; i < ins.size(); i++) {
+            cout << ins[i] << " ";
+        }
+        cout << endl;
+        exit(EXIT_FAILURE);
+    }
 }
 
 void parseOperands(vector<string>& ins, Word& PC, vector<Byte>& conversion) {
@@ -660,7 +679,7 @@ void parseOperands(vector<string>& ins, Word& PC, vector<Byte>& conversion) {
     checkModes(ins, mode, opcode);
     appendOpcode(opcode, mode, conversion, PC);
 
-    if(ins.size() > 1 && mode != Define && mode != Error) {
+    if(ins.size() > 1 && mode != Define) {
         string operands = removeParenthesisOperands(ins[1], mode);
         appendOperands(opcode, operands, mode, conversion, PC);
     }
@@ -685,14 +704,10 @@ void Assembler::parse(CPU* cpu, const string& filename) {
         insertLabels(parsed[i]);
     }
 
-    printf("---------------------------------------------------------------\n");
-
     for(int i = 0; i < parsed.size(); i++) {
         parseLabels(parsed[i], PC);
     }
     PC = cpu->PC;
-
-    printf("---------------------------------------------------------------\n");
 
     for(int i = 0; i < parsed.size(); i++) {
         vector<Byte> conversion;

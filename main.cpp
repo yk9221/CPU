@@ -9,15 +9,16 @@
 using namespace std;
 
 int main() {
-    const string filename = "code.yk";
     CPU* cpu = new CPU();
+    const string filename = "code.yk";
+    
     Assembler* assembler = new Assembler();
     assembler->parse(cpu, filename);
 
     printf("---------------------------------------------------------------\n");
+    cpu->printMemory();
     cpu->run();
     cpu->printRegisters();
-    cpu->printMemory();
     printf("---------------------------------------------------------------\n");
     return 0;
 }
