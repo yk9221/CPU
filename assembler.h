@@ -15,6 +15,11 @@
 
 using namespace std;
 
+typedef struct AddressLabel {
+    Word value;
+    AddressingMode mode;
+} AddressLabel;
+
 enum class Radix {
     BIN,
     OCT,

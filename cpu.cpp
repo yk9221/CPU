@@ -536,24 +536,21 @@ void CPU::assignFlag(int flag, bool set) {
 }
 
 void CPU::printRegisters() {
-    printf("Program Counter:\t0x%04X\n", PC);
-    printf("Stack Pointer:\t\t0x%02X\n", SP);
-    printf("Accumulator:\t\t0x%02X\n", A);
-    printf("Register X:\t\t0x%02X\n", X);
-    printf("Register Y:\t\t0x%02X\n", Y);
+    printf("Registers:\n\n");
+    printf(" PC  SP A  X  Y  NV-BDIZC\n");
+    printf("%04X %02X %02X %02X %02X ", PC, SP, A, X, Y);
     printFlags();
 }
 
 void CPU::printFlags() {
-    printf("Flags:\t\t\t");
-    printf("N=%x  ", getFlag(NEGATIVE_BIT));
-    printf("V=%x  ", getFlag(OVERFLOW_BIT));
-    printf("U=%x  ", getFlag(UNUSED_BIT));
-    printf("B=%x  ", getFlag(BREAK_BIT));
-    printf("D=%x  ", getFlag(DECIMAL_BIT));
-    printf("I=%x  ", getFlag(INTERRUPT_BIT));
-    printf("Z=%x  ", getFlag(ZERO_BIT));
-    printf("C=%x\n", getFlag(CARRY_BIT));
+    printf("%x", getFlag(NEGATIVE_BIT));
+    printf("%x", getFlag(OVERFLOW_BIT));
+    printf("%x", getFlag(UNUSED_BIT));
+    printf("%x", getFlag(BREAK_BIT));
+    printf("%x", getFlag(DECIMAL_BIT));
+    printf("%x", getFlag(INTERRUPT_BIT));
+    printf("%x", getFlag(ZERO_BIT));
+    printf("%x\n", getFlag(CARRY_BIT));
 }
 
 void CPU::printMemory() {

@@ -19,7 +19,8 @@ enum AddressingMode {
     IndirectX,
     IndirectY,
     Error,
-    Label
+    Label,
+    Define
 };
 
 enum Bits {
@@ -252,6 +253,26 @@ enum Flags {
     U = (1 << UNUSED_BIT),
     V = (1 << OVERFLOW_BIT),
     N = (1 << NEGATIVE_BIT),
+};
+
+enum ModeByte {
+    ImplicitBytes = 1,
+    AccumulatorBytes = 1,
+    ImmediateBytes = 2,
+    ZeroPageBytes = 2,
+    ZeroPageXBytes = 2,
+    ZeroPageYBytes = 2,
+    RelativeBytes = 2,
+    AbsoluteBytes = 3,
+    AbsoluteXBytes = 3,
+    AbsoluteYBytes = 3,
+    IndirectBytes = 3,
+    IndirectXBytes = 2,
+    IndirectYBytes = 2,
+    ErrorBytes = 0,
+    LabelBytes = 0,
+    DefineByte = 0
+
 };
 
 class CPU {
