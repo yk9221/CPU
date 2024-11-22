@@ -1,79 +1,9 @@
 #include "assembler.h"
 
-unordered_set<char> binaryVal {'0', '1'};
-unordered_set<char> octalVal {'0', '1', '2', '3', '4', '5', '6', '7'};
-unordered_set<char> decimalVal {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
-unordered_set<char> hexadecimalVal {'0', '1', '2', '3', '4', '5', '6', '7',
-                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-unordered_map<string, AddressLabel> labelAddress;
+Assembler::Assembler() {}
+Assembler::~Assembler() {}
 
-unordered_set<string> allOpCodes {
-    "adc", "and", "asl", "bcc", "bcs", "beq", "bit", "bmi", "bne", "bpl", "brk", "bvc", "bvs", "clc",
-    "cld", "cli", "clv", "cmp", "cpx", "cpy", "dec", "dex", "dey", "eor", "inc", "inx", "iny", "jmp",
-    "jsr", "lda", "ldx", "ldy", "lsr", "nop", "ora", "pha", "php", "pla", "plp", "rol", "ror", "rti",
-    "rts", "sbc", "sec", "sed", "sei", "sta", "stx", "sty", "tax", "tay", "tsx", "txa", "txs", "tya"
-};
-
-unordered_map<string, vector<pair<AddressingMode, Opcode>>> allAddressingModes {
-    {"adc", {{Immediate, ADC_IMM}, {ZeroPage, ADC_ZP}, {ZeroPageX, ADC_ZPX}, {Absolute, ADC_AB}, {AbsoluteX, ADC_ABX}, {AbsoluteY, ADC_ABY}, {IndirectX, ADC_IDX}, {IndirectY, ADC_IDY}}},
-    {"and", {{Immediate, AND_IMM}, {ZeroPage, AND_ZP}, {ZeroPageX, AND_ZPX}, {Absolute, AND_AB}, {AbsoluteX, AND_ABX}, {AbsoluteY, AND_ABY}, {IndirectX, AND_IDX}, {IndirectY, AND_IDY}}},
-    {"asl", {{Accumulator, ASL_ACC}, {ZeroPage, ASL_ZP}, {ZeroPageX, ASL_ZPX}, {Absolute, ASL_AB}, {AbsoluteX, ASL_ABX}}},
-    {"bcc", {{Relative, BCC_REL}}},
-    {"bcs", {{Relative, BCS_REL}}},
-    {"beq", {{Relative, BEQ_REL}}},
-    {"bit", {{ZeroPage, BIT_ZP}, {Absolute, BIT_AB}}},
-    {"bmi", {{Relative, BMI_REL}}},
-    {"bne", {{Relative, BNE_REL}}},
-    {"bpl", {{Relative, BPL_REL}}},
-    {"brk", {{Implicit, BRK_IMP}}},
-    {"bvc", {{Relative, BVC_REL}}},
-    {"bvs", {{Relative, BVS_REL}}},
-    {"clc", {{Implicit, CLC_IMP}}},
-    {"cld", {{Implicit, CLD_IMP}}},
-    {"cli", {{Implicit, CLI_IMP}}},
-    {"clv", {{Implicit, CLV_IMP}}},
-    {"cmp", {{Immediate, CMP_IMM}, {ZeroPage, CMP_ZP}, {ZeroPageX, CMP_ZPX}, {Absolute, CMP_AB}, {AbsoluteX, CMP_ABX}, {AbsoluteY, CMP_ABY}, {IndirectX, CMP_IDX}, {IndirectY, CMP_IDY}}},
-    {"cpx", {{Immediate, CPX_IMM}, {ZeroPage, CPX_ZP}, {Absolute, CPX_AB}}},
-    {"cpy", {{Immediate, CPY_IMM}, {ZeroPage, CPY_ZP}, {Absolute, CPY_AB}}},
-    {"dec", {{ZeroPage, DEC_ZP}, {ZeroPageX, DEC_ZPX}, {Absolute, DEC_AB}, {AbsoluteX, DEC_ABX}}},
-    {"dex", {{Implicit, DEX_IMP}}},
-    {"dey", {{Implicit, DEY_IMP}}},
-    {"eor", {{Immediate, EOR_IMM}, {ZeroPage, EOR_ZP}, {ZeroPageX, EOR_ZPX}, {Absolute, EOR_AB}, {AbsoluteX, EOR_ABX}, {AbsoluteY, EOR_ABY}, {IndirectX, EOR_IDX}, {IndirectY, EOR_IDY}}},
-    {"inc", {{ZeroPage, INC_ZP}, {ZeroPageX, INC_ZPX}, {Absolute, INC_AB}, {AbsoluteX, INC_ABX}}},
-    {"inx", {{Implicit, INX_IMP}}},
-    {"iny", {{Implicit, INY_IMP}}},
-    {"jmp", {{Absolute, JMP_AB}, {Indirect, JMP_ID}}},
-    {"jsr", {{Absolute, JSR_AB}}},
-    {"lda", {{Immediate, LDA_IMM}, {ZeroPage, LDA_ZP}, {ZeroPageX, LDA_ZPX}, {Absolute, LDA_AB}, {AbsoluteX, LDA_ABX}, {AbsoluteY, LDA_ABY}, {IndirectX, LDA_IDX}, {IndirectY, LDA_IDY}}},
-    {"ldx", {{Immediate, LDX_IMM}, {ZeroPage, LDX_ZP}, {ZeroPageY, LDX_ZPY}, {Absolute, LDX_AB}, {AbsoluteY, LDX_ABY}}},
-    {"ldy", {{Immediate, LDY_IMM}, {ZeroPage, LDY_ZP}, {ZeroPageX, LDY_ZPX}, {Absolute, LDY_AB}, {AbsoluteX, LDY_ABX}}},
-    {"lsr", {{Accumulator, LSR_ACC}, {ZeroPage, LSR_ZP}, {ZeroPageX, LSR_ZPX}, {Absolute, LSR_AB}, {AbsoluteX, LSR_ABX}}},
-    {"nop", {{Implicit, NOP_IMP}}},
-    {"ora", {{Immediate, ORA_IMM}, {ZeroPage, ORA_ZP}, {ZeroPageX, ORA_ZPX}, {Absolute, ORA_AB}, {AbsoluteX, ORA_ABX}, {AbsoluteY, ORA_ABY}, {IndirectX, ORA_IDX}, {IndirectY, ORA_IDY}}},
-    {"pha", {{Implicit, PHA_IMP}}},
-    {"php", {{Implicit, PHP_IMP}}},
-    {"pla", {{Implicit, PLA_IMP}}},
-    {"plp", {{Implicit, PLP_IMP}}},
-    {"rol", {{Accumulator, ROL_ACC}, {ZeroPage, ROL_ZP}, {ZeroPageX, ROL_ZPX}, {Absolute, ROL_AB}, {AbsoluteX, ROL_ABX}}},
-    {"ror", {{Accumulator, ROR_ACC}, {ZeroPage, ROR_ZP}, {ZeroPageX, ROR_ZPX}, {Absolute, ROR_AB}, {AbsoluteX, ROR_ABX}}},
-    {"rti", {{Implicit, RTI_IMP}}},
-    {"rts", {{Implicit, RTS_IMP}}},
-    {"sbc", {{Immediate, SBC_IMM}, {ZeroPage, SBC_ZP}, {ZeroPageX, SBC_ZPX}, {Absolute, SBC_AB}, {AbsoluteX, SBC_ABX}, {AbsoluteY, SBC_ABY}, {IndirectX, SBC_IDX}, {IndirectY, SBC_IDY}}},
-    {"sec", {{Implicit, SEC_IMP}}},
-    {"sed", {{Implicit, SED_IMP}}},
-    {"sei", {{Implicit, SEI_IMP}}},
-    {"sta", {{ZeroPage, STA_ZP}, {ZeroPageX, STA_ZPX}, {Absolute, STA_AB}, {AbsoluteX, STA_ABX}, {AbsoluteY, STA_ABY}, {IndirectX, STA_IDX}, {IndirectY, STA_IDY}}},
-    {"stx", {{ZeroPage, STX_ZP}, {ZeroPageY, STX_ZPY}, {Absolute, STX_AB}}},
-    {"sty", {{ZeroPage, STY_ZP}, {ZeroPageX, STY_ZPX}, {Absolute, STY_AB}}},
-    {"tax", {{Implicit, TAX_IMP}}},
-    {"tay", {{Implicit, TAY_IMP}}},
-    {"tsx", {{Implicit, TSX_IMP}}},
-    {"txa", {{Implicit, TXA_IMP}}},
-    {"txs", {{Implicit, TXS_IMP}}},
-    {"tya", {{Implicit, TYA_IMP}}}
-};
-
-void printInstruction(vector<string>& vec) {
+void Assembler::printInstruction(vector<string>& vec) {
     cout << "[";
     for(int i = 0; i < vec.size(); i++) {
         if(i < vec.size() - 1) {
@@ -86,7 +16,69 @@ void printInstruction(vector<string>& vec) {
     cout << "]" << endl;
 }
 
-string tolower(string str) {
+void Assembler::printMode(AddressingMode& mode) {
+    printf("Mode: ");
+    switch(mode) {
+        case Implicit: {printf("Implicit\n"); break;}
+        case Accumulator: {printf("Accumulator\n"); break;}
+        case Immediate: {printf("Immediate\n"); break;}
+        case ZeroPage: {printf("ZeroPage\n"); break;}
+        case ZeroPageX: {printf("ZeroPageX\n"); break;}
+        case ZeroPageY: {printf("ZeroPageY\n"); break;}
+        case Relative: {printf("Relative\n"); break;}
+        case Absolute: {printf("Absolute\n"); break;}
+        case AbsoluteX: {printf("AbsoluteX\n"); break;}
+        case AbsoluteY: {printf("AbsoluteY\n"); break;}
+        case Indirect: {printf("Indirect\n"); break;}
+        case IndirectX: {printf("IndirectX\n"); break;}
+        case IndirectY: {printf("IndirectY\n"); break;}
+        case Error: {printf("Error\n"); break;}
+        case Label: {printf("Label\n"); break;}
+        case Define: {printf("Define\n"); break;}
+        default: {printf("Error\n"); break;}
+    }
+}
+
+vector<string> Assembler::split(const string& str, const unordered_set<char>& delimiter) {
+    vector<string> tokens;
+    string buffer;
+    bool comment = false;
+
+    for(char c : str) {
+        if(comment) {
+            continue;
+        }
+        if(delimiter.find(c) != delimiter.end()) {
+            if(!buffer.empty()) {
+                tokens.push_back(toLower(buffer));
+                buffer.clear();
+            }
+        }
+        else if(c == ';') {
+            comment = true;
+        }
+        else {
+            buffer += c;
+        }
+    }
+    if(!buffer.empty()) {
+        tokens.push_back(toLower(buffer));
+        buffer.clear();
+    }
+    return tokens;
+}
+
+string Assembler::removeParenthesisOperands(string& operands, AddressingMode& mode) {
+    if(mode == Indirect || mode == IndirectY) {
+        return operands.substr(1, operands.size() - 2);
+    }
+    else if(mode == IndirectX) {
+        return operands.substr(1);
+    }
+    return operands;
+}
+
+string Assembler::toLower(string str) {
     for(char& c : str) {
         c = tolower(static_cast<unsigned char>(c));
     }
@@ -94,7 +86,26 @@ string tolower(string str) {
     return str;
 }
 
-bool checkIsByte(const string& num) {
+Word Assembler::stringToNum(string& num) {
+    Word value = 0x0;
+
+    if(checkIsNumber(num) == Radix::BIN) {
+        value = strtol(num.substr(1).c_str(), nullptr, 2);
+    }
+    else if(checkIsNumber(num) == Radix::OCT) {
+        value = strtol(num.substr(1).c_str(), nullptr, 8);
+    }
+    else if(checkIsNumber(num) == Radix::DEC) {
+        value = strtol(num.c_str(), nullptr, 10);
+    }
+    else if(checkIsNumber(num) == Radix::HEX) {
+        value = strtol(num.substr(1).c_str(), nullptr, 16);
+    }
+
+    return value;
+}
+
+bool Assembler::checkIsByte(const string& num) {
     if(checkIsNumber(num) == Radix::ERR) {
         return false;
     }
@@ -131,7 +142,7 @@ bool checkIsByte(const string& num) {
     }
 }
 
-bool checkIsWord(const string& num) {
+bool Assembler::checkIsWord(const string& num) {
     if(checkIsNumber(num) == Radix::ERR) {
         return false;
     }
@@ -168,7 +179,7 @@ bool checkIsWord(const string& num) {
     }
 }
 
-Radix checkIsNumber(const string& num) {
+Radix Assembler::checkIsNumber(const string& num) {
     if(num[0] == '%') {
         for(int i = 1; i < num.size(); i++) {
             if(binaryVal.find(num[i]) == binaryVal.end()) {
@@ -205,10 +216,7 @@ Radix checkIsNumber(const string& num) {
     return Radix::ERR;
 }
 
-Assembler::Assembler() {}
-Assembler::~Assembler() {}
-
-int getModeIndex(string& opcode, AddressingMode& mode) {
+int Assembler::getModeIndex(string& opcode, AddressingMode& mode) {
     for(int i = 0; i < allAddressingModes[opcode].size(); i++) {
         if(allAddressingModes[opcode][i].first == mode) {
             return i;
@@ -217,7 +225,7 @@ int getModeIndex(string& opcode, AddressingMode& mode) {
     return -1;
 }
 
-bool checkModeExists(string& opcode, AddressingMode mode) {
+bool Assembler::checkModeExists(string& opcode, AddressingMode mode) {
     for(int i = 0; i < allAddressingModes[opcode].size(); i++) {
         if(allAddressingModes[opcode][i].first == mode) {
             return true;
@@ -226,13 +234,13 @@ bool checkModeExists(string& opcode, AddressingMode mode) {
     return false;
 }
 
-void setErrorModeIfMissing(string& opcode, AddressingMode& mode) {
+void Assembler::setErrorModeIfMissing(string& opcode, AddressingMode& mode) {
     if(!checkModeExists(opcode, mode)) {
         mode = Error;
     }
 }
 
-Byte getModeBytes(AddressingMode mode) {
+Byte Assembler::getModeBytes(AddressingMode mode) {
     switch(mode) {
         case Implicit: {return ImplicitBytes;}
         case Accumulator: {return AccumulatorBytes;}
@@ -254,66 +262,14 @@ Byte getModeBytes(AddressingMode mode) {
     }
 }
 
-void appendOpcode(string& opcode, AddressingMode& mode, vector<Byte>& conversion, Word& PC) {
+void Assembler::appendOpcode(string& opcode, AddressingMode& mode, vector<Byte>& conversion, Word& PC) {
     int modeIndex = getModeIndex(opcode, mode);
     if(modeIndex != -1) {
         conversion.push_back(allAddressingModes[opcode][modeIndex].second);
     }
 }
 
-string removeParenthesisOperands(string& operands, AddressingMode& mode) {
-    if(mode == Indirect || mode == IndirectY) {
-        return operands.substr(1, operands.size() - 2);
-    }
-    else if(mode == IndirectX) {
-        return operands.substr(1);
-    }
-    return operands;
-}
-
-Word stringToNum(string& num) {
-    Word value = 0x0;
-
-    if(checkIsNumber(num) == Radix::BIN) {
-        value = strtol(num.substr(1).c_str(), nullptr, 2);
-    }
-    else if(checkIsNumber(num) == Radix::OCT) {
-        value = strtol(num.substr(1).c_str(), nullptr, 8);
-    }
-    else if(checkIsNumber(num) == Radix::DEC) {
-        value = strtol(num.c_str(), nullptr, 10);
-    }
-    else if(checkIsNumber(num) == Radix::HEX) {
-        value = strtol(num.substr(1).c_str(), nullptr, 16);
-    }
-
-    return value;
-}
-
-void printMode(AddressingMode& mode) {
-    printf("Mode: ");
-    switch(mode) {
-        case Implicit: {printf("Implicit\n"); break;}
-        case Accumulator: {printf("Accumulator\n"); break;}
-        case Immediate: {printf("Immediate\n"); break;}
-        case ZeroPage: {printf("ZeroPage\n"); break;}
-        case ZeroPageX: {printf("ZeroPageX\n"); break;}
-        case ZeroPageY: {printf("ZeroPageY\n"); break;}
-        case Relative: {printf("Relative\n"); break;}
-        case Absolute: {printf("Absolute\n"); break;}
-        case AbsoluteX: {printf("AbsoluteX\n"); break;}
-        case AbsoluteY: {printf("AbsoluteY\n"); break;}
-        case Indirect: {printf("Indirect\n"); break;}
-        case IndirectX: {printf("IndirectX\n"); break;}
-        case IndirectY: {printf("IndirectY\n"); break;}
-        case Error: {printf("Error\n"); break;}
-        case Label: {printf("Label\n"); break;}
-        case Define: {printf("Define\n"); break;}
-        default: {printf("Error\n"); break;}
-    }
-}
-
-void appendOperands(string& opcode, string& operands, AddressingMode& mode, vector<Byte>& conversion, Word& PC) {
+void Assembler::appendOperands(string& opcode, string& operands, AddressingMode& mode, vector<Byte>& conversion, Word& PC) {
     Word value = 0x0;
     string num;
 
@@ -322,23 +278,20 @@ void appendOperands(string& opcode, string& operands, AddressingMode& mode, vect
             value = labelAddress[operands].value;
         }
         else {
-            if(labelAddress[operands].mode == Define) {
-                value = labelAddress[operands].value;
-            }
-            else if(labelAddress[operands.substr(1)].mode == Define && operands[0] == '#') {
+            if(labelAddress[operands.substr(1)].mode == Define && operands[0] == '#') {
                 value = labelAddress[operands.substr(1)].value;
             }
+            else if(labelAddress[operands].mode == Define) {
+                value = labelAddress[operands].value;
+            }
             else {
-                value = labelAddress[operands].value - (PC + 1);
+                value = labelAddress[operands].value - (PC + 2);
 
                 if(((value >> 8) & 0xFF) == 0xFF) {
                     value = value & 0xFF;
                 }
             }
-
         }
-
-
     }
     else {
         if(operands[0] == '#') {
@@ -360,7 +313,7 @@ void appendOperands(string& opcode, string& operands, AddressingMode& mode, vect
     }
 }
 
-void checkImplicit(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkImplicit(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS
 
     if(ins.size() == 1) {
@@ -369,7 +322,7 @@ void checkImplicit(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkAccumulator(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkAccumulator(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS
     // INS A
 
@@ -387,7 +340,7 @@ void checkAccumulator(vector<string>& ins, AddressingMode& mode, string& opcode)
     }
 }
 
-void checkImmediate(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkImmediate(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS #$FF
     // INS #LABEL
 
@@ -409,7 +362,7 @@ void checkImmediate(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkZeroPage(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkZeroPage(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS $FF
     // INS LABEL
 
@@ -426,7 +379,7 @@ void checkZeroPage(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkZeroPageX(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkZeroPageX(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS $FF, X
     // INS LABEL, X
 
@@ -444,7 +397,7 @@ void checkZeroPageX(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkZeroPageY(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkZeroPageY(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS $FF, Y
     // INS LABEL, Y
 
@@ -462,7 +415,7 @@ void checkZeroPageY(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkRelative(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkRelative(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS LABEL
 
     if(ins.size() == 2) {
@@ -474,7 +427,7 @@ void checkRelative(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkAbsolute(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkAbsolute(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS $FFFF
     // INS LABEL
 
@@ -490,7 +443,7 @@ void checkAbsolute(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkAbsoluteX(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkAbsoluteX(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS $FFFF, X
     // INS LABEL, X
 
@@ -508,7 +461,7 @@ void checkAbsoluteX(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkAbsoluteY(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkAbsoluteY(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS $FFFF, Y
     // INS LABEL, Y
 
@@ -526,7 +479,7 @@ void checkAbsoluteY(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkIndirect(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkIndirect(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS ($FFFF)
     // INS (LABEL)
 
@@ -546,7 +499,7 @@ void checkIndirect(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkIndirectX(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkIndirectX(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS ($FFFF, X)
     // INS (LABEL, X)
 
@@ -568,7 +521,7 @@ void checkIndirectX(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkIndirectY(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkIndirectY(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // INS ($FFFF), Y
     // INS (LABEL), Y
 
@@ -590,7 +543,7 @@ void checkIndirectY(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkLabel(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkLabel(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // LABEL:
 
     if(ins.size() == 1)
@@ -599,7 +552,7 @@ void checkLabel(vector<string>& ins, AddressingMode& mode, string& opcode) {
         }
 }
 
-void checkDefine(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkDefine(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // define var $FFFF
 
     if(ins.size() == 3) {
@@ -612,7 +565,7 @@ void checkDefine(vector<string>& ins, AddressingMode& mode, string& opcode) {
     }
 }
 
-void checkModes(vector<string>& ins, AddressingMode& mode, string& opcode) {
+void Assembler::checkModes(vector<string>& ins, AddressingMode& mode, string& opcode) {
     mode = Error;
     checkImplicit(ins, mode, opcode);
     checkAccumulator(ins, mode, opcode);
@@ -633,7 +586,7 @@ void checkModes(vector<string>& ins, AddressingMode& mode, string& opcode) {
     // printMode(mode);
 }
 
-void insertLabels(vector<string>& ins) {
+void Assembler::insertLabels(vector<string>& ins) {
     string opcode = ins[0];
     AddressingMode mode = Error;
 
@@ -650,7 +603,7 @@ void insertLabels(vector<string>& ins) {
     }
 }
 
-void parseLabels(vector<string>& ins, Word& PC) {
+void Assembler::parseLabels(vector<string>& ins, Word& PC) {
     string opcode = ins[0];
     AddressingMode mode = Error;
 
@@ -672,7 +625,7 @@ void parseLabels(vector<string>& ins, Word& PC) {
     }
 }
 
-void parseOperands(vector<string>& ins, Word& PC, vector<Byte>& conversion) {
+void Assembler::parseOperands(vector<string>& ins, Word& PC, vector<Byte>& conversion) {
     string opcode = ins[0];
     AddressingMode mode;
 
@@ -720,38 +673,8 @@ void Assembler::parse(CPU* cpu, const string& filename) {
     file.close();
 }
 
-vector<string> Assembler::split(const string& str, const unordered_set<char>& delimiter) {
-    vector<string> tokens;
-    string buffer;
-    bool comment = false;
-
-    for(char c : str) {
-        if(comment) {
-            continue;
-        }
-        if(delimiter.find(c) != delimiter.end()) {
-            if(!buffer.empty()) {
-                tokens.push_back(tolower(buffer));
-                buffer.clear();
-            }
-        }
-        else if(c == ';') {
-            comment = true;
-        }
-        else {
-            buffer += c;
-        }
-    }
-    if(!buffer.empty()) {
-        tokens.push_back(tolower(buffer));
-        buffer.clear();
-    }
-    return tokens;
-}
-
 void Assembler::addToMemory(vector<Byte>& instructions, CPU* cpu, Word& PC) {
     for(auto ins : instructions) {
-        printf("%x: %x\n", PC, ins);
         cpu->write(PC, ins);
         PC++;
     }
