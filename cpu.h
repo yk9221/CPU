@@ -54,6 +54,9 @@ public:
     void printRegisters();
     void printFlags();
     void printMemory();
+    void printColorBlock(int r, int g, int b);
+    void clearScreen();
+    void printScreen();
 };
 
 #endif

@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <cstdlib>
 
+#include <chrono>
+#include <string>
+#include <thread>
 #include <vector>
 #include <cstdlib>
 #include <fstream>
@@ -15,7 +18,7 @@
 
 
 #define RAM_SIZE (64 * 1024)
-
+#define GRIDSIZE 32
 #define MAX_BYTE 255
 #define MAX_WORD 65535
 
@@ -307,7 +310,7 @@ enum Radix {
     ERR
 };
 
-inline std::unordered_map<std::string, std::string> instruction_map {
+inline unordered_map<string, string> instruction_map {
     // ADC
     {"69", "ADC_IMM"},
     {"65", "ADC_ZP"},
@@ -582,6 +585,23 @@ inline unordered_map<string, vector<pair<AddressingMode, Opcode>>> allAddressing
     {"txs", {{Implicit, TXS_IMP}}},
     {"tya", {{Implicit, TYA_IMP}}}
 };
-
+inline unordered_map<Byte, string> colors {
+    {0x0, "000000"}, // black
+    {0x1, "FFFFFF"}, // white
+    {0x2, "880000"}, // dark red
+    {0x3, "AAFFEE"}, // light cyan
+    {0x4, "CC44CC"}, // purple
+    {0x5, "00CC55"}, // green
+    {0x6, "0000AA"}, // blue
+    {0x7, "EEEE77"}, // yellow
+    {0x8, "DD8855"}, // orange
+    {0x9, "664400"}, // brown
+    {0xA, "FF7777"}, // pink
+    {0xB, "333333"}, // dark gray
+    {0xC, "777777"}, // gray
+    {0xD, "AAFF66"}, // light gre
+    {0xE, "0088FF"}, // sky blue
+    {0xF, "BBBBBB"} // light gray
+};
 
 #endif

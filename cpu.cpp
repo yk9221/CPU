@@ -556,3 +556,33 @@ void CPU::printFlags() {
 void CPU::printMemory() {
     memory->printMemory();
 }
+
+void CPU::printColorBlock(int r, int g, int b) {
+    cout << "\033[48;2;" << r << ";" << g << ";" << b << "m  \033[0m";
+}
+
+void CPU::clearScreen() {
+    cout << "\033[2J\033[H";
+}
+
+void CPU::printScreen() {
+    int pixel[GRIDSIZE][GRIDSIZE][3];
+    for (int y = 0; y < GRIDSIZE; y++) {
+        for (int x = 0; x < GRIDSIZE; x++) {
+            Word address = y * GRIDSIZE + x + 0x200;
+            Byte value = read(address);
+            string rgb = colors[value % 0x10];
+
+            pixel[y][x][0] = stoi(rgb.substr(0, 2), nullptr, 16);
+            pixel[y][x][1] = stoi(rgb.substr(2, 2), nullptr, 16);
+            pixel[y][x][2] = stoi(rgb.substr(4, 2), nullptr, 16);
+        }
+    }
+
+    for (int y = 0; y < GRIDSIZE; y++) {
+        for (int x = 0; x < GRIDSIZE; x++) {
+            printColorBlock(pixel[y][x][0], pixel[y][x][1], pixel[y][x][2]);
+        }
+        std::cout << "\n";
+    }
+}

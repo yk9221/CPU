@@ -665,7 +665,7 @@ void Assembler::parse(CPU* cpu, const string& filename) {
     for(int i = 0; i < parsed.size(); i++) {
         vector<Byte> conversion;
 
-        printInstruction(parsed[i]);
+        // printInstruction(parsed[i]);
         parseOperands(parsed[i], PC, conversion);
         addToMemory(conversion, cpu, PC);
     }
