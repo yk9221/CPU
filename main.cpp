@@ -11,8 +11,6 @@ int main() {
     assembler->parse(cpu, filename);
 
     cpu->run();
-    cpu->printMemory();
     cpu->printRegisters();
-    cpu->printScreen();
     return 0;
 }

@@ -10,7 +10,7 @@ private:
     Byte currentValue;
     Word currentAddress;
     Byte cycles;
-    bool pageBoundaryCrossed;
+    Byte pageBoundaryCrossed;
     AddressingMode addressingMode;
 
 public:
