@@ -43,8 +43,10 @@ public:
     bool instructions();
     Byte read(Word address);
     void write(Word address, Byte value);
-    void push(Byte value);
-    Byte pop();
+    void pushByte(Byte value);
+    void pushWord(Word value);
+    Byte popByte();
+    Word popWord();
 
     Byte getFlag(int flag);
     void setFlag(int flag);

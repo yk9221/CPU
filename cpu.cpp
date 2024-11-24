@@ -55,7 +55,7 @@ void CPU::AM_ZPY() {
 }
 
 void CPU::AM_REL() {
-    currentAddress = PC;
+    currentAddress = PC++;
     currentValue = read(currentAddress);
     addressingMode = Relative;
 }
@@ -93,7 +93,9 @@ void CPU::AM_ABY() {
 void CPU::AM_ID() {
     Byte lower = read(PC++);
     Byte upper = read(PC++);
-    currentAddress = ((upper << 8) | lower);
+    Word address = (upper << 8) | lower;
+
+    currentAddress = read(address) | (read(address + 1) << 8);
     currentValue = read(currentAddress);
     addressingMode = Indirect;
 }
@@ -157,71 +159,152 @@ void CPU::I_AND() {
     }
 }
 
-// TODO
 void CPU::I_ASL() {
+    Byte mulTwo = A << 1;
+    assignFlag(CARRY_BIT, (A & 0x80) >> NEGATIVE_BIT == 1);
+    assignFlag(ZERO_BIT, mulTwo == 0);
+    assignFlag(NEGATIVE_BIT, (mulTwo & 0x80) >> NEGATIVE_BIT == 1);
 
     switch(addressingMode) {
-        case Accumulator: {cycles = 2; break;}
-        case ZeroPage: {cycles = 5; break;}
-        case ZeroPageX: {cycles = 6; break;}
-        case Absolute: {cycles = 6; break;}
-        case AbsoluteX: {cycles = 7; break;}
+        case Accumulator: {A = mulTwo; cycles = 2; break;}
+        case ZeroPage: {write(currentAddress, mulTwo); cycles = 5; break;}
+        case ZeroPageX: {write(currentAddress, mulTwo); cycles = 6; break;}
+        case Absolute: {write(currentAddress, mulTwo); cycles = 6; break;}
+        case AbsoluteX: {write(currentAddress, mulTwo); cycles = 7; break;}
         default: {break;}
     }
-
 }
 
-// TODO
 void CPU::I_BCC() {
+    Byte oldPC = PC;
     if(getFlag(CARRY_BIT) == 0) {
-        PC += currentValue;
+        PC += (signedByte) currentValue;
     }
 
     switch(addressingMode) {
         case Relative: {
-            if(getFlag(CARRY_BIT) == 1) {
-                cycles = 3;
+            cycles = 2;
+            if((oldPC & 0xFF00) != (PC & 0xFF00)) {
+                cycles++;
             }
-            else {
-                cycles = 2;
+            if(getFlag(CARRY_BIT) == 0) {
+                cycles++;
             }
-
-            break;
         }
-        default: {
-            break;
-        }
+        default: {break;}
     }
 }
 
-// TODO
 void CPU::I_BCS() {
+    Byte oldPC = PC;
+    if(getFlag(CARRY_BIT) == 1) {
+        PC += (signedByte) currentValue;
+    }
 
+    switch(addressingMode) {
+        case Relative: {
+            cycles = 2;
+            if((oldPC & 0xFF00) != (PC & 0xFF00)) {
+                cycles++;
+            }
+            if(getFlag(CARRY_BIT) == 1) {
+                cycles++;
+            }
+        }
+        default: {break;}
+    }
 }
 
-// TODO
 void CPU::I_BEQ() {
+    Byte oldPC = PC;
+    if(getFlag(ZERO_BIT) == 1) {
+        PC += (signedByte) currentValue;
+    }
 
+    switch(addressingMode) {
+        case Relative: {
+            cycles = 2;
+            if((oldPC & 0xFF00) != (PC & 0xFF00)) {
+                cycles++;
+            }
+            if(getFlag(ZERO_BIT) == 1) {
+                cycles++;
+            }
+        }
+        default: {break;}
+    }
 }
 
-// TODO
 void CPU::I_BIT() {
+    assignFlag(ZERO_BIT, (A & currentValue) == 0);
+    assignFlag(OVERFLOW_BIT, (currentValue & 0x40) >> OVERFLOW_BIT == 1);
+    assignFlag(NEGATIVE_BIT, (currentValue & 0x80) >> NEGATIVE_BIT == 1);
 
+    switch(addressingMode) {
+        case ZeroPage: {cycles = 3; break;}
+        case Absolute: {cycles = 4; break;}
+        default: {break;}
+    }
 }
 
-// TODO
 void CPU::I_BMI() {
+    Byte oldPC = PC;
+    if(getFlag(NEGATIVE_BIT) == 1) {
+        PC += (signedByte) currentValue;
+    }
 
+    switch(addressingMode) {
+        case Relative: {
+            cycles = 2;
+            if((oldPC & 0xFF00) != (PC & 0xFF00)) {
+                cycles++;
+            }
+            if(getFlag(NEGATIVE_BIT) == 1) {
+                cycles++;
+            }
+        }
+        default: {break;}
+    }
 }
 
-// TODO
 void CPU::I_BNE() {
+    Byte oldPC = PC;
+    if(getFlag(ZERO_BIT) == 0) {
+        PC += (signedByte) currentValue;
+    }
 
+    switch(addressingMode) {
+        case Relative: {
+            cycles = 2;
+            if((oldPC & 0xFF00) != (PC & 0xFF00)) {
+                cycles++;
+            }
+            if(getFlag(ZERO_BIT) == 0) {
+                cycles++;
+            }
+        }
+        default: {break;}
+    }
 }
 
-// TODO
 void CPU::I_BPL() {
+    Byte oldPC = PC;
+    if(getFlag(NEGATIVE_BIT) == 0) {
+        PC += (signedByte) currentValue;
+    }
 
+    switch(addressingMode) {
+        case Relative: {
+            cycles = 2;
+            if((oldPC & 0xFF00) != (PC & 0xFF00)) {
+                cycles++;
+            }
+            if(getFlag(NEGATIVE_BIT) == 0) {
+                cycles++;
+            }
+        }
+        default: {break;}
+    }
 }
 
 void CPU::I_BRK() {
@@ -233,14 +316,44 @@ void CPU::I_BRK() {
     }
 }
 
-// TODO
 void CPU::I_BVC() {
+    Byte oldPC = PC;
+    if(getFlag(OVERFLOW) == 0) {
+        PC += (signedByte) currentValue;
+    }
 
+    switch(addressingMode) {
+        case Relative: {
+            cycles = 2;
+            if((oldPC & 0xFF00) != (PC & 0xFF00)) {
+                cycles++;
+            }
+            if(getFlag(OVERFLOW_BIT) == 0) {
+                cycles++;
+            }
+        }
+        default: {break;}
+    }
 }
 
-// TODO
 void CPU::I_BVS() {
+    Byte oldPC = PC;
+    if(getFlag(OVERFLOW_BIT) == 1) {
+        PC += (signedByte) currentValue;
+    }
 
+    switch(addressingMode) {
+        case Relative: {
+            cycles = 2;
+            if((oldPC & 0xFF00) != (PC & 0xFF00)) {
+                cycles++;
+            }
+            if(getFlag(OVERFLOW_BIT) == 1) {
+                cycles++;
+            }
+        }
+        default: {break;}
+    }
 }
 
 void CPU::I_CLC() {
@@ -279,8 +392,11 @@ void CPU::I_CLV() {
     }
 }
 
-// TODO
 void CPU::I_CMP() {
+
+    assignFlag(CARRY_BIT, A >= currentValue);
+    assignFlag(ZERO_BIT, A == currentValue);
+    assignFlag(NEGATIVE_BIT, (A - currentValue) >> NEGATIVE_BIT == 1);
 
     switch(addressingMode) {
         case Immediate: {cycles = 2; break;}
@@ -415,7 +531,6 @@ void CPU::I_INY() {
     }
 }
 
-// TODO
 void CPU::I_JMP() {
     PC = currentAddress;
 
@@ -426,9 +541,8 @@ void CPU::I_JMP() {
     }
 }
 
-// TODO
 void CPU::I_JSR() {
-    push(PC - 1);
+    pushWord(PC - 1);
     PC = currentAddress;
 
     switch(addressingMode) {
@@ -485,15 +599,18 @@ void CPU::I_LDY() {
     }
 }
 
-// TODO
 void CPU::I_LSR() {
+    Byte divTwo = A >> 1;
+    assignFlag(CARRY_BIT, (A & 0x01) >> CARRY_BIT == 1);
+    assignFlag(ZERO_BIT, divTwo == 0);
+    assignFlag(NEGATIVE_BIT, (divTwo & 0x80) >> NEGATIVE_BIT == 1);
 
     switch(addressingMode) {
-        case Accumulator: {cycles = 2; break;}
-        case ZeroPage: {cycles = 5; break;}
-        case ZeroPageX: {cycles = 6; break;}
-        case Absolute: {cycles = 7; break;}
-        case AbsoluteX: {cycles = 7; break;}
+        case Accumulator: {A = divTwo; cycles = 2; break;}
+        case ZeroPage: {write(currentAddress, divTwo); cycles = 5; break;}
+        case ZeroPageX: {write(currentAddress, divTwo); cycles = 6; break;}
+        case Absolute: {write(currentAddress, divTwo); cycles = 6; break;}
+        case AbsoluteX: {write(currentAddress, divTwo); cycles = 7; break;}
         default: {break;}
     }
 }
@@ -524,7 +641,7 @@ void CPU::I_ORA() {
 }
 
 void CPU::I_PHA() {
-    push(A);
+    pushByte(A);
 
     switch(addressingMode) {
         case Implicit: {cycles = 3; break;}
@@ -533,7 +650,7 @@ void CPU::I_PHA() {
 }
 
 void CPU::I_PHP() {
-    push(PS);
+    pushByte(PS);
 
     switch(addressingMode) {
         case Implicit: {cycles = 3; break;}
@@ -542,7 +659,7 @@ void CPU::I_PHP() {
 }
 
 void CPU::I_PLA() {
-    A = pop();
+    A = popByte();
     assignFlag(ZERO_BIT, A == 0);
     assignFlag(NEGATIVE_BIT, (A &= 0x80) >> NEGATIVE_BIT == 1);
 
@@ -552,8 +669,9 @@ void CPU::I_PLA() {
     }
 }
 
-// TODO
 void CPU::I_PLP() {
+    PS = popByte();
+    setFlag(UNUSED_BIT);
 
     switch(addressingMode) {
         case Implicit: {cycles = 4; break;}
@@ -561,34 +679,42 @@ void CPU::I_PLP() {
     }
 }
 
-// TODO
 void CPU::I_ROL() {
+    Byte rotateLeft = (A << 1) | getFlag(CARRY_BIT);
+    assignFlag(CARRY_BIT, (A & 0x80) >> NEGATIVE_BIT == 1);
+    assignFlag(ZERO_BIT, rotateLeft == 0);
+    assignFlag(NEGATIVE_BIT, (rotateLeft & 0x80) >> NEGATIVE_BIT == 1);
 
     switch(addressingMode) {
-        case Accumulator: {cycles = 2; break;}
-        case ZeroPage: {cycles = 5; break;}
-        case ZeroPageX: {cycles = 6; break;}
-        case Absolute: {cycles = 7; break;}
-        case AbsoluteX: {cycles = 7; break;}
+        case Accumulator: {A = rotateLeft; cycles = 2; break;}
+        case ZeroPage: {write(currentAddress, rotateLeft); cycles = 5; break;}
+        case ZeroPageX: {write(currentAddress, rotateLeft); cycles = 6; break;}
+        case Absolute: {write(currentAddress, rotateLeft); cycles = 6; break;}
+        case AbsoluteX: {write(currentAddress, rotateLeft); cycles = 7; break;}
         default: {break;}
     }
 }
 
-// TODO
 void CPU::I_ROR() {
+    Byte rotateRight = (A >> 1) | (getFlag(CARRY_BIT) << NEGATIVE_BIT);
+    assignFlag(CARRY_BIT, (A & 0x01) == 1);
+    assignFlag(ZERO_BIT, rotateRight == 0);
+    assignFlag(NEGATIVE_BIT, (rotateRight & 0x80) >> NEGATIVE_BIT == 1);
 
     switch(addressingMode) {
-        case Accumulator: {cycles = 2; break;}
-        case ZeroPage: {cycles = 5; break;}
-        case ZeroPageX: {cycles = 6; break;}
-        case Absolute: {cycles = 7; break;}
-        case AbsoluteX: {cycles = 7; break;}
+        case Accumulator: {A = rotateRight; cycles = 2; break;}
+        case ZeroPage: {write(currentAddress, rotateRight); cycles = 5; break;}
+        case ZeroPageX: {write(currentAddress, rotateRight); cycles = 6; break;}
+        case Absolute: {write(currentAddress, rotateRight); cycles = 6; break;}
+        case AbsoluteX: {write(currentAddress, rotateRight); cycles = 7; break;}
         default: {break;}
     }
 }
 
-// TODO
 void CPU::I_RTI() {
+    PS = popByte();
+    setFlag(UNUSED_BIT);
+    PC = popWord() + 1;
 
     switch(addressingMode) {
         case Implicit: {cycles = 6; break;}
@@ -596,9 +722,8 @@ void CPU::I_RTI() {
     }
 }
 
-// TODO
 void CPU::I_RTS() {
-    PC = pop();
+    PC = popWord() + 1;
 
     switch(addressingMode) {
         case Implicit: {cycles = 6; break;}
@@ -756,10 +881,10 @@ void CPU::I_TYA() {
 }
 
 void CPU::run() {
-    while(instructions()) {
+    do {
         printMemory();
-        printScreen();
-    }
+        printRegisters();
+    } while(instructions());
 }
 
 bool CPU::instructions() {
@@ -987,12 +1112,27 @@ void CPU::write(Word address, Byte value) {
     memory->write(address, value);
 }
 
-void CPU::push(Byte value) {
+void CPU::pushByte(Byte value) {
     memory->write((1 << 8) | SP--, value);
 }
 
-Byte CPU::pop() {
-    return memory->read(((1 << 8) | SP++) + 1);
+void CPU::pushWord(Word value) {
+    Byte lower = value & 0xFF;
+    Byte upper = value >> 8;
+    
+    pushByte(upper);
+    pushByte(lower);
+}
+
+Byte CPU::popByte() {
+    return memory->read((1 << 8) | ++SP);
+}
+
+Word CPU::popWord() {
+    Byte lower = popByte();
+    Byte upper = popByte();
+
+    return (upper << 8) | lower;
 }
 
 Byte CPU::getFlag(int flag) {

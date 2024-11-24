@@ -23,6 +23,7 @@
 #define MAX_WORD 65535
 
 using Byte = uint8_t;
+using signedByte = int8_t;
 using Word = uint16_t;
 using namespace std;
 
@@ -519,7 +520,6 @@ inline unordered_map<string, string> instruction_map {
     // TYA
     {"98", "TYA_IMP"}
 };
-
 
 inline unordered_set<char> binaryVal {'0', '1'};
 inline unordered_set<char> octalVal {'0', '1', '2', '3', '4', '5', '6', '7'};
