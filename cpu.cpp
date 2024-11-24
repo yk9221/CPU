@@ -883,8 +883,8 @@ void CPU::I_TYA() {
 void CPU::run() {
     do {
         printMemory();
-        printRegisters();
     } while(instructions());
+    printRegisters();
 }
 
 bool CPU::instructions() {
