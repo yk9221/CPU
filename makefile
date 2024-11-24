@@ -19,4 +19,4 @@ clean:
 	rm -f $(OBJS) $(TARGET)
 
 run: $(TARGET)
-	./$(TARGET)
+	@if [ -z "$(FILE)" ]; then echo "Please provide a .yk file. Usage: make run FILE=<filename>"; else ./$(TARGET) $(FILE); fi
