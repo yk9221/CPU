@@ -15,6 +15,10 @@ int main(int argc, char* argv[]) {
         cerr << "File " << filename << " does not exit." << endl;
         return EXIT_FAILURE;
     }
+    if(filename.substr(filename.size() - 2, 2) != "yk") {
+        cerr << "File " << filename << " should be in .yk format" << endl;
+        return EXIT_FAILURE;
+    }
 
 
     CPU* cpu = new CPU();
